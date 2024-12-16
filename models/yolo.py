@@ -27,6 +27,9 @@ if platform.system() != "Windows":
 
 from models.common import (
     C3,
+    CBAM,
+    ChannelAttention,
+    SpatialAttention,
     C3SPP,
     C3TR,
     SPP,
@@ -67,6 +70,8 @@ try:
     import thop  # for FLOPs computation
 except ImportError:
     thop = None
+
+torch.use_deterministic_algorithms(False)
 
 
 class Detect(nn.Module):
