@@ -22,24 +22,30 @@ import torch
 
 class AdaptiveOptimizer(torch.optim.Optimizer): 
     # Init Method: 
-    def __init__(self, params, lr=1e-1, gamma=0.9): 
+    def __init__(self, params, lr=1e-2, gamma=0.9): 
         self.lr = lr
         self.s=1
         self.gamma = gamma
+        self.gradient_num = 0
         super(AdaptiveOptimizer, self).__init__(params, defaults={'lr': lr})
       
     # Step Method 
     def step(self): 
+        if self.gradient_num == 0: 
+            for group in self.param_groups: 
+                for param in group['params']: 
+                    if param.grad != None:
+                        self.gradient_num += torch.numel(param.grad.data)
         gradients_total = 0
         for group in self.param_groups: 
             for param in group['params']: 
                 if param.grad != None:
                     gradients_total += torch.sum(param.grad.data**2)
-        self.s = self.gamma * self.s + (1-self.gamma) * gradients_total 
+        self.s = self.gamma * self.s + (1-self.gamma) * gradients_total / self.gradient_num
         for group in self.param_groups: 
             for param in group['params']: 
                 if param.grad != None:
-                    param.data -= self.lr / math.sqrt(self.s) * math.pow(gradients_total,0.25) * param.grad.data 
+                    param.data -= self.lr / math.sqrt(self.s) * param.grad.data 
 
 
 if __name__ == '__main__': 
@@ -47,7 +53,7 @@ if __name__ == '__main__':
     model2 = copy.deepcopy(model1)
     model3 = copy.deepcopy(model1)
     criterion = torch.nn.MSELoss()
-    optimizer1 = AdaptiveOptimizer(model1.parameters(), lr=0.1,gamma=0.9)
+    optimizer1 = AdaptiveOptimizer(model1.parameters(), lr=1,gamma=0.9)
     optimizer2 = torch.optim.SGD(model2.parameters(), lr=0.01)
     optimizer3 = torch.optim.Adam(model3.parameters(), lr=1)
 
